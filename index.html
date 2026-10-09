@@ -30,13 +30,14 @@
         <!-- Контент YouTube -->
         <div id="content-yt" class="space-y-4">
             <div class="flex gap-2">
-                <input type="text" id="ytChannelInput" placeholder="@handle или ID канала" class="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-red-500">
-                <button type="button" onclick="loadYtStats()" class="bg-red-600 px-4 py-2 rounded-xl text-sm font-semibold">Найти</button>
+                <input type="text" id="ytChannelInput" placeholder="@handle (например @sputn1k_1)" class="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-red-500">
+                <button type="button" onclick="searchYtChannel()" class="bg-red-600 px-4 py-2 rounded-xl text-sm font-semibold">Найти</button>
             </div>
 
+            <!-- Карточка канала -->
             <div id="ytCard" class="hidden bg-gray-800 p-4 rounded-xl border border-gray-700 space-y-3">
                 <div class="flex items-center gap-3">
-                    <img id="ytAvatar" class="w-12 h-12 rounded-full" src="" alt="Avatar">
+                    <img id="ytAvatar" class="w-12 h-12 rounded-full border border-gray-600" src="" alt="Avatar">
                     <div>
                         <h2 id="ytTitle" class="font-bold text-base"></h2>
                         <p id="ytCustomUrl" class="text-xs text-gray-400"></p>
@@ -70,7 +71,7 @@
             <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 space-y-3">
                 <h3 class="font-bold text-sm">TikTok Профиль</h3>
                 <input type="text" id="ttUsername" placeholder="@username" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm">
-                <button type="button" onclick="saveTtUser()" class="w-full bg-red-600 py-2 rounded-lg text-xs font-semibold">Сохранить профиль</button>
+                <button type="button" onclick="alert('TikTok профиль сохранён!')" class="w-full bg-red-600 py-2 rounded-lg text-xs font-semibold">Сохранить</button>
             </div>
         </div>
 
@@ -79,7 +80,7 @@
             <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 space-y-3">
                 <h3 class="font-bold text-sm">Facebook Страница</h3>
                 <input type="text" id="fbPageId" placeholder="Page ID или URL" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm">
-                <button type="button" onclick="saveFbPage()" class="w-full bg-red-600 py-2 rounded-lg text-xs font-semibold">Сохранить страницу</button>
+                <button type="button" onclick="alert('Facebook страница сохранена!')" class="w-full bg-red-600 py-2 rounded-lg text-xs font-semibold">Сохранить</button>
             </div>
         </div>
     </div>
@@ -93,80 +94,85 @@
                 window.Telegram.WebApp.ready();
                 window.Telegram.WebApp.expand();
             }
-        } catch(e) {
-            console.error("TG Init error", e);
-        }
+        } catch(e) {}
 
         function switchTab(tab) {
-            try {
-                ['yt', 'tt', 'fb'].forEach(t => {
-                    const el = document.getElementById(`content-${t}`);
-                    if (el) el.classList.add('hidden');
-                    const btn = document.getElementById(`tab-${t}`);
-                    if (btn) btn.className = 'flex-1 py-2 rounded-lg text-gray-400';
-                });
-                const activeEl = document.getElementById(`content-${tab}`);
-                if (activeEl) activeEl.classList.remove('hidden');
-                const activeBtn = document.getElementById(`tab-${tab}`);
-                if (activeBtn) activeBtn.className = 'flex-1 py-2 rounded-lg bg-red-600 font-semibold';
-            } catch(e) {
-                alert('Ошибка переключения: ' + e.message);
-            }
+            ['yt', 'tt', 'fb'].forEach(t => {
+                document.getElementById(`content-${t}`)?.classList.add('hidden');
+                const btn = document.getElementById(`tab-${t}`);
+                if (btn) btn.className = 'flex-1 py-2 rounded-lg text-gray-400';
+            });
+            document.getElementById(`content-${tab}`)?.classList.remove('hidden');
+            const activeBtn = document.getElementById(`tab-${tab}`);
+            if (activeBtn) activeBtn.className = 'flex-1 py-2 rounded-lg bg-red-600 font-semibold';
         }
 
         function handleAuth() {
-            try {
-                const redirectUri = 'https://deniskrasov442-afk.github.io/ViewsStats/';
-                const scope = 'https://www.googleapis.com/auth/yt-analytics.readonly';
-                const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(scope)}`;
-                
-                if (window.Telegram && window.Telegram.WebApp && typeof window.Telegram.WebApp.openLink === 'function') {
-                    window.Telegram.WebApp.openLink(authUrl);
-                } else {
-                    window.location.href = authUrl;
-                }
-            } catch(e) {
-                alert('Ошибка входа: ' + e.message);
-            }
+            const redirectUri = 'https://deniskrasov442-afk.github.io/ViewsStats/';
+            const scope = 'https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/yt-analytics.readonly';
+            const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(scope)}`;
+            
+            // Пробуем запустить прямо в текущем окне, чтобы редирект возвращал прямо на страницу
+            window.location.href = authUrl;
         }
 
         window.addEventListener('DOMContentLoaded', () => {
-            try {
-                const hash = window.location.hash;
-                if (hash && hash.includes('access_token=')) {
-                    const params = new URLSearchParams(hash.replace('#', '?'));
-                    accessToken = params.get('access_token');
-                    if (accessToken) {
-                        const btn = document.getElementById('authBtn');
-                        if (btn) {
-                            btn.innerText = 'Авторизован';
-                            btn.className = 'bg-green-600 px-3 py-1.5 rounded-lg text-xs font-semibold';
-                        }
-                        loadRevenue();
-                        history.replaceState(null, null, window.location.pathname);
+            const hash = window.location.hash;
+            if (hash && hash.includes('access_token=')) {
+                const params = new URLSearchParams(hash.replace('#', '?'));
+                accessToken = params.get('access_token');
+                if (accessToken) {
+                    const btn = document.getElementById('authBtn');
+                    if (btn) {
+                        btn.innerText = 'Авторизован';
+                        btn.className = 'bg-green-600 px-3 py-1.5 rounded-lg text-xs font-semibold';
                     }
+                    loadMyYtChannel();
+                    history.replaceState(null, null, window.location.pathname);
                 }
-            } catch(e) {
-                console.error("Hash check error", e);
             }
         });
 
-        async function loadYtStats() {
-            const query = document.getElementById('ytChannelInput').value.trim();
-            if (!query) return;
-
+        // Загрузка ЛИЧНОГО канала авторизованного пользователя через Google API
+        async function loadMyYtChannel() {
+            if (!accessToken) return;
             try {
-                const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(`https://www.youtube.com/${query}`)}`);
+                const res = await fetch('https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&mine=true', {
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                });
                 const data = await res.json();
                 
-                document.getElementById('ytCard').classList.remove('hidden');
-                document.getElementById('ytTitle').innerText = query;
-                document.getElementById('ytCustomUrl').innerText = query;
+                if (data.items && data.items.length > 0) {
+                    const ch = data.items[0];
+                    showChannelData(
+                        ch.snippet.title,
+                        ch.snippet.customUrl || ch.id,
+                        ch.snippet.thumbnails.default.url,
+                        ch.statistics.subscriberCount,
+                        ch.statistics.viewCount,
+                        ch.statistics.videoCount
+                    );
+                    loadRevenue();
+                } else {
+                    alert('У вашего аккаунта Google не найден YouTube канал.');
+                }
             } catch (e) {
-                alert('Ошибка при загрузке данных');
+                console.error('Ошибка загрузки личного канала:', e);
             }
         }
 
+        // Вывод данных канала в интерфейс
+        function showChannelData(title, handle, avatar, subs, views, videos) {
+            document.getElementById('ytCard').classList.remove('hidden');
+            document.getElementById('ytTitle').innerText = title;
+            document.getElementById('ytCustomUrl').innerText = handle;
+            document.getElementById('ytAvatar').src = avatar;
+            document.getElementById('ytSubs').innerText = Number(subs).toLocaleString();
+            document.getElementById('ytViews').innerText = Number(views).toLocaleString();
+            document.getElementById('ytVideos').innerText = Number(videos).toLocaleString();
+        }
+
+        // Загрузка дохода за 30 дней
         async function loadRevenue() {
             if (!accessToken) return;
             try {
@@ -188,8 +194,41 @@
             }
         }
 
-        function saveTtUser() { alert('Профиль сохранен'); }
-        function saveFbPage() { alert('Страница сохранена'); }
+        // Поиск любого канала по нику
+        async function searchYtChannel() {
+            const handle = document.getElementById('ytChannelInput').value.trim();
+            if (!handle) return;
+
+            if (!accessToken) {
+                alert('Для поиска каналов через API войдите в свой Google аккаунт!');
+                return;
+            }
+
+            try {
+                const cleanHandle = handle.replace('@', '');
+                const res = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&forHandle=${cleanHandle}`, {
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                });
+                const data = await res.json();
+
+                if (data.items && data.items.length > 0) {
+                    const ch = data.items[0];
+                    showChannelData(
+                        ch.snippet.title,
+                        '@' + cleanHandle,
+                        ch.snippet.thumbnails.default.url,
+                        ch.statistics.subscriberCount,
+                        ch.statistics.viewCount,
+                        ch.statistics.videoCount
+                    );
+                    document.getElementById('revenueBlock').classList.add('hidden');
+                } else {
+                    alert('Канал не найден');
+                }
+            } catch (e) {
+                alert('Ошибка поиска канала');
+            }
+        }
     </script>
 </body>
 </html>
