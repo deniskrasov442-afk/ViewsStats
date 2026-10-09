@@ -1,4 +1,4 @@
-    <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -9,6 +9,7 @@
 </head>
 <body class="bg-gray-900 text-white font-sans p-4">
     <div class="max-w-md mx-auto space-y-4">
+        <!-- Шапка -->
         <div class="flex justify-between items-center bg-gray-800 p-4 rounded-xl border border-gray-700">
             <div>
                 <h1 class="text-lg font-bold">Аналитика каналов</h1>
@@ -19,12 +20,14 @@
             </button>
         </div>
 
+        <!-- Вкладки -->
         <div class="flex bg-gray-800 p-1 rounded-xl border border-gray-700 text-sm">
             <button onclick="switchTab('yt')" id="tab-yt" class="flex-1 py-2 rounded-lg bg-red-600 font-semibold">YouTube</button>
             <button onclick="switchTab('tt')" id="tab-tt" class="flex-1 py-2 rounded-lg text-gray-400">TikTok</button>
             <button onclick="switchTab('fb')" id="tab-fb" class="flex-1 py-2 rounded-lg text-gray-400">Facebook</button>
         </div>
 
+        <!-- Контент YouTube -->
         <div id="content-yt" class="space-y-4">
             <div class="flex gap-2">
                 <input type="text" id="ytChannelInput" placeholder="@handle или ID канала" class="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-red-500">
@@ -62,6 +65,7 @@
             </div>
         </div>
 
+        <!-- Контент TikTok -->
         <div id="content-tt" class="hidden space-y-4">
             <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 space-y-3">
                 <h3 class="font-bold text-sm">TikTok Профиль</h3>
@@ -70,6 +74,7 @@
             </div>
         </div>
 
+        <!-- Контент Facebook -->
         <div id="content-fb" class="hidden space-y-4">
             <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 space-y-3">
                 <h3 class="font-bold text-sm">Facebook Страница</h3>
@@ -80,18 +85,15 @@
     </div>
 
     <script>
-        const CLIENT_ID = '331826017772-i1f45037i17pblgtgnh665a3962bvgng.apps.googleusercontent.com';
+        const CLIENT_ID = '443708504279-3vojcefjp9isvrk4fa9kevqujdq9o40i.apps.googleusercontent.com';
         let accessToken = null;
 
-if (window.Telegram && window.Telegram.WebApp) {
-    window.Telegram.WebApp.ready();
-    window.Telegram.WebApp.expand();
-}
+        if (window.Telegram && window.Telegram.WebApp) {
+            window.Telegram.WebApp.ready();
+            window.Telegram.WebApp.expand();
+        }
 
-const CLIENT_ID = '443708504279-3vojcefjp9isvrk4fa9kevqujdq9o40i.apps.googleusercontent.com';
-
-function switchTab(tab) {
-...
+        function switchTab(tab) {
             ['yt', 'tt', 'fb'].forEach(t => {
                 document.getElementById(`content-${t}`).classList.add('hidden');
                 const btn = document.getElementById(`tab-${t}`);
@@ -107,7 +109,11 @@ function switchTab(tab) {
             const scope = 'https://www.googleapis.com/auth/yt-analytics.readonly';
             const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(scope)}`;
             
-            window.location.href = authUrl;
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openLink) {
+                window.Telegram.WebApp.openLink(authUrl);
+            } else {
+                window.location.href = authUrl;
+            }
         }
 
         window.addEventListener('DOMContentLoaded', () => {
