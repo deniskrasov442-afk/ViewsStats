@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Channel Stats Mini App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body class="bg-gray-900 text-white font-sans p-4 min-h-screen">
+
+    <div class="max-w-md mx-auto space-y-4">
+        <div class="flex justify-between items-center bg-gray-800 p-4 rounded-xl border border-gray-700">
+            <div>
+                <h1 class="text-lg font-bold">Аналитика каналов</h1>
+                <p class="text-xs text-gray-400">YouTube / TikTok / Facebook</p>
+            </div>
+            <button id="authBtn" onclick="handleAuth()" class="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-lg text-xs font-semibold">
+                Войти в Google
+            </button>
+        </div>
+
+        <div class="flex bg-gray-800 p-1 rounded-xl border border-gray-700 text-sm">
+            <button onclick="switchTab('yt')" id="tab-yt" class="flex-1 py-2 rounded-lg bg-red-600 font-semibold">YouTube</button>
+            <button onclick="switchTab('tt')" id="tab-tt" class="flex-1 py-2 rounded-lg text-gray-400">TikTok</button>
+            <button onclick="switchTab('fb')" id="tab-fb" class="flex-1 py-2 rounded-lg text-gray-400">Facebook</button>
+        </div>
+
+        <div id="content-yt" class="space-y-4">
+            <div class="flex gap-2">
+                <input type="text" id="ytChannelInput" placeholder="@handle или ID канала" class="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-red-500">
+                <button onclick="loadYtStats()" class="bg-red-600 px-4 py-2 rounded-xl text-sm font-semibold">Найти</button>
+            </div>
+
+            <div id="ytCard" class="hidden bg-gray-800 p-4 rounded-xl border border-gray-700 space-y-3">
+                <div class="flex items-center gap-3">
+                    <img id="ytAvatar" class="w-12 h-12 rounded-full" src="" alt="Avatar">
+                    <div>
+                        <h2 id="ytTitle" class="font-bold text-base"></h2>
+                        <p id="ytCustomUrl" class="text-xs text-gray-400"></p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2 text-center text-xs">
+                    <div class="bg-gray-900 p-2 rounded-lg">
+                        <div class="text-gray-400">Подписчики</div>
+                        <div id="ytSubs" class="font-bold text-sm text-red-400">0</div>
+                    </div>
+                    <div class="bg-gray-900 p-2 rounded-lg">
+                        <div class="text-gray-400">Просмотры</div>
+                        <div id="ytViews" class="font-bold text-sm">0</div>
+                    </div>
+                    <div class="bg-gray-900 p-2 rounded-lg">
+                        <div class="text-gray-400">Видео</div>
+                        <div id="ytVideos" class="font-bold text-sm">0</div>
+                    </div>
+                </div>
+
+                <div id="revenueBlock" class="hidden border-t border-gray-700 pt-3 mt-3">
+                    <div class="text-xs text-gray-400 mb-1">Ориентировочный доход (30 дней):</div>
+                    <div id="revenueValue" class="text-xl font-bold text-green-400">$0.00</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="content-tt" class="hidden space-y-4">
+            <div class="flex gap-2">
+                <input type="text" id="ttUsername" placeholder="@username в TikTok" class="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm focus:outline-none">
+                <button onclick="saveTtUser()" class="bg-blue-600 px-4 py-2 rounded-xl text-sm font-semibold">Сохранить</button>
+            </div>
+        </div>
+
+        <div id="content-fb" class="hidden space-y-4">
+            <div class="flex gap-2">
+                <input type="text" id="fbPage" placeholder="Ссылка на страницу FB" class="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm focus:outline-none">
+                <button onclick="saveFbPage()" class="bg-blue-800 px-4 py-2 rounded-xl text-sm font-semibold">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ВСТАВЬ СВОЙ API KEY ИЗ GOOGLE CLOUD В СТРОКУ НИЖЕ:
+        const API_KEY = 'AIzaSyCJXuf0bkHh8kBfTOxFZ5kdHW17W5xIo6o'; 
+        const CLIENT_ID = '443708504279-3vojcefjp9isvrk4fa9kevqujdq9o40i.apps.googleusercontent.com';
+
+        let tokenClient;
+        let accessToken = null;
+
+        function switchTab(tab) {
+            ['yt', 'tt', 'fb'].forEach(t => {
+                document.getElementById(`content-${t}`).classList.add('hidden');
+                document.getElementById(`tab-${t}`).className = 'flex-1 py-2 rounded-lg text-gray-400';
+            });
+            document.getElementById(`content-${tab}`).classList.remove('hidden');
+            document.getElementById(`tab-${tab}`).className = `flex-1 py-2 rounded-lg font-semibold ${tab==='yt'?'bg-red-600':tab==='tt'?'bg-blue-600':'bg-blue-800'}`;
+        }
+
+        async function loadYtStats() {
+            const handle = document.getElementById('ytChannelInput').value.trim();
+            if (!handle) return;
+
+            try {
+                const res = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&forHandle=${encodeURIComponent(handle)}&key=${API_KEY}`);
+                const data = await res.json();
+
+                if (data.items && data.items.length > 0) {
+                    const ch = data.items[0];
+                    document.getElementById('ytAvatar').src = ch.snippet.thumbnails.default.url;
+                    document.getElementById('ytTitle').innerText = ch.snippet.title;
+                    document.getElementById('ytCustomUrl').innerText = ch.snippet.customUrl || '';
+                    document.getElementById('ytSubs').innerText = Number(ch.statistics.subscriberCount).toLocaleString();
+                    document.getElementById('ytViews').innerText = Number(ch.statistics.viewCount).toLocaleString();
+                    document.getElementById('ytVideos').innerText = Number(ch.statistics.videoCount).toLocaleString();
+                    document.getElementById('ytCard').classList.remove('hidden');
+                } else {
+                    alert('Канал не найден');
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Ошибка при загрузке данных');
+            }
+        }
+
+        function handleAuth() {
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: CLIENT_ID,
+                scope: 'https://www.googleapis.com/auth/yt-analytics.readonly',
+                callback: (response) => {
+                    if (response.access_token) {
+                        accessToken = response.access_token;
+                        document.getElementById('authBtn').innerText = 'Авторизован';
+                        document.getElementById('authBtn').className = 'bg-green-600 px-3 py-1.5 rounded-lg text-xs font-semibold';
+                        loadRevenue();
+                    }
+                },
+            });
+            tokenClient.requestAccessToken();
+        }
+
+        async function loadRevenue() {
+            if (!accessToken) return;
+            try {
+                const now = new Date();
+                const endDate = now.toISOString().split('T')[0];
+                const startDate = new Date(now.setDate(now.getDate() - 30)).toISOString().split('T')[0];
+
+                const res = await fetch(`https://youtubeanalytics.googleapis.com/v2/reports?startDate=${startDate}&endDate=${endDate}&metrics=estimatedRevenue&ids=channel==MINE`, {
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                });
+                const data = await res.json();
+                if (data.rows && data.rows.length > 0) {
+                    const rev = data.rows.reduce((sum, r) => sum + r[0], 0);
+                    document.getElementById('revenueValue').innerText = `$${rev.toFixed(2)}`;
+                    document.getElementById('revenueBlock').classList.remove('hidden');
+                }
+            } catch (e) {
+                console.error('Ошибка дохода:', e);
+            }
+        }
+
+        function saveTtUser() { alert('Профиль сохранять в локальном хранилище'); }
+        function saveFbPage() { alert('Страница сохранена'); }
+    </script>
+</body>
+</html>
