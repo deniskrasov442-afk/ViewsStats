@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+    <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -83,12 +83,15 @@
         const CLIENT_ID = '331826017772-i1f45037i17pblgtgnh665a3962bvgng.apps.googleusercontent.com';
         let accessToken = null;
 
-        if (window.Telegram && window.Telegram.WebApp) {
-            window.Telegram.WebApp.ready();
-            window.Telegram.WebApp.expand();
-        }
+if (window.Telegram && window.Telegram.WebApp) {
+    window.Telegram.WebApp.ready();
+    window.Telegram.WebApp.expand();
+}
 
-        function switchTab(tab) {
+const CLIENT_ID = '443708504279-3vojcefjp9isvrk4fa9kevqujdq9o40i.apps.googleusercontent.com';
+
+function switchTab(tab) {
+...
             ['yt', 'tt', 'fb'].forEach(t => {
                 document.getElementById(`content-${t}`).classList.add('hidden');
                 const btn = document.getElementById(`tab-${t}`);
