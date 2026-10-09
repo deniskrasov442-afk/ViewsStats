@@ -15,23 +15,23 @@
                 <h1 class="text-lg font-bold">Аналитика каналов</h1>
                 <p class="text-xs text-gray-400">YouTube / TikTok / Facebook</p>
             </div>
-            <button id="authBtn" onclick="handleAuth()" class="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-lg text-xs font-semibold">
+            <button id="authBtn" type="button" onclick="handleAuth()" class="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer">
                 Войти в Google
             </button>
         </div>
 
         <!-- Вкладки -->
         <div class="flex bg-gray-800 p-1 rounded-xl border border-gray-700 text-sm">
-            <button onclick="switchTab('yt')" id="tab-yt" class="flex-1 py-2 rounded-lg bg-red-600 font-semibold">YouTube</button>
-            <button onclick="switchTab('tt')" id="tab-tt" class="flex-1 py-2 rounded-lg text-gray-400">TikTok</button>
-            <button onclick="switchTab('fb')" id="tab-fb" class="flex-1 py-2 rounded-lg text-gray-400">Facebook</button>
+            <button type="button" onclick="switchTab('yt')" id="tab-yt" class="flex-1 py-2 rounded-lg bg-red-600 font-semibold">YouTube</button>
+            <button type="button" onclick="switchTab('tt')" id="tab-tt" class="flex-1 py-2 rounded-lg text-gray-400">TikTok</button>
+            <button type="button" onclick="switchTab('fb')" id="tab-fb" class="flex-1 py-2 rounded-lg text-gray-400">Facebook</button>
         </div>
 
         <!-- Контент YouTube -->
         <div id="content-yt" class="space-y-4">
             <div class="flex gap-2">
                 <input type="text" id="ytChannelInput" placeholder="@handle или ID канала" class="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-red-500">
-                <button onclick="loadYtStats()" class="bg-red-600 px-4 py-2 rounded-xl text-sm font-semibold">Найти</button>
+                <button type="button" onclick="loadYtStats()" class="bg-red-600 px-4 py-2 rounded-xl text-sm font-semibold">Найти</button>
             </div>
 
             <div id="ytCard" class="hidden bg-gray-800 p-4 rounded-xl border border-gray-700 space-y-3">
@@ -70,7 +70,7 @@
             <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 space-y-3">
                 <h3 class="font-bold text-sm">TikTok Профиль</h3>
                 <input type="text" id="ttUsername" placeholder="@username" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm">
-                <button onclick="saveTtUser()" class="w-full bg-red-600 py-2 rounded-lg text-xs font-semibold">Сохранить профиль</button>
+                <button type="button" onclick="saveTtUser()" class="w-full bg-red-600 py-2 rounded-lg text-xs font-semibold">Сохранить профиль</button>
             </div>
         </div>
 
@@ -79,7 +79,7 @@
             <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 space-y-3">
                 <h3 class="font-bold text-sm">Facebook Страница</h3>
                 <input type="text" id="fbPageId" placeholder="Page ID или URL" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm">
-                <button onclick="saveFbPage()" class="w-full bg-red-600 py-2 rounded-lg text-xs font-semibold">Сохранить страницу</button>
+                <button type="button" onclick="saveFbPage()" class="w-full bg-red-600 py-2 rounded-lg text-xs font-semibold">Сохранить страницу</button>
             </div>
         </div>
     </div>
@@ -88,45 +88,66 @@
         const CLIENT_ID = '443708504279-3vojcefjp9isvrk4fa9kevqujdq9o40i.apps.googleusercontent.com';
         let accessToken = null;
 
-        if (window.Telegram && window.Telegram.WebApp) {
-            window.Telegram.WebApp.ready();
-            window.Telegram.WebApp.expand();
+        try {
+            if (window.Telegram && window.Telegram.WebApp) {
+                window.Telegram.WebApp.ready();
+                window.Telegram.WebApp.expand();
+            }
+        } catch(e) {
+            console.error("TG Init error", e);
         }
 
         function switchTab(tab) {
-            ['yt', 'tt', 'fb'].forEach(t => {
-                document.getElementById(`content-${t}`).classList.add('hidden');
-                const btn = document.getElementById(`tab-${t}`);
-                btn.className = 'flex-1 py-2 rounded-lg text-gray-400';
-            });
-            document.getElementById(`content-${tab}`).classList.remove('hidden');
-            const activeBtn = document.getElementById(`tab-${tab}`);
-            activeBtn.className = 'flex-1 py-2 rounded-lg bg-red-600 font-semibold';
+            try {
+                ['yt', 'tt', 'fb'].forEach(t => {
+                    const el = document.getElementById(`content-${t}`);
+                    if (el) el.classList.add('hidden');
+                    const btn = document.getElementById(`tab-${t}`);
+                    if (btn) btn.className = 'flex-1 py-2 rounded-lg text-gray-400';
+                });
+                const activeEl = document.getElementById(`content-${tab}`);
+                if (activeEl) activeEl.classList.remove('hidden');
+                const activeBtn = document.getElementById(`tab-${tab}`);
+                if (activeBtn) activeBtn.className = 'flex-1 py-2 rounded-lg bg-red-600 font-semibold';
+            } catch(e) {
+                alert('Ошибка переключения: ' + e.message);
+            }
         }
 
         function handleAuth() {
-            const redirectUri = 'https://deniskrasov442-afk.github.io/ViewsStats/';
-            const scope = 'https://www.googleapis.com/auth/yt-analytics.readonly';
-            const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(scope)}`;
-            
-            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openLink) {
-                window.Telegram.WebApp.openLink(authUrl);
-            } else {
-                window.location.href = authUrl;
+            try {
+                const redirectUri = 'https://deniskrasov442-afk.github.io/ViewsStats/';
+                const scope = 'https://www.googleapis.com/auth/yt-analytics.readonly';
+                const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(scope)}`;
+                
+                if (window.Telegram && window.Telegram.WebApp && typeof window.Telegram.WebApp.openLink === 'function') {
+                    window.Telegram.WebApp.openLink(authUrl);
+                } else {
+                    window.location.href = authUrl;
+                }
+            } catch(e) {
+                alert('Ошибка входа: ' + e.message);
             }
         }
 
         window.addEventListener('DOMContentLoaded', () => {
-            const hash = window.location.hash;
-            if (hash && hash.includes('access_token=')) {
-                const params = new URLSearchParams(hash.replace('#', '?'));
-                accessToken = params.get('access_token');
-                if (accessToken) {
-                    document.getElementById('authBtn').innerText = 'Авторизован';
-                    document.getElementById('authBtn').className = 'bg-green-600 px-3 py-1.5 rounded-lg text-xs font-semibold';
-                    loadRevenue();
-                    history.replaceState(null, null, window.location.pathname);
+            try {
+                const hash = window.location.hash;
+                if (hash && hash.includes('access_token=')) {
+                    const params = new URLSearchParams(hash.replace('#', '?'));
+                    accessToken = params.get('access_token');
+                    if (accessToken) {
+                        const btn = document.getElementById('authBtn');
+                        if (btn) {
+                            btn.innerText = 'Авторизован';
+                            btn.className = 'bg-green-600 px-3 py-1.5 rounded-lg text-xs font-semibold';
+                        }
+                        loadRevenue();
+                        history.replaceState(null, null, window.location.pathname);
+                    }
                 }
+            } catch(e) {
+                console.error("Hash check error", e);
             }
         });
 
